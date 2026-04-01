@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="給与計算">
+<title>給与計算アプリ</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F3EE;
+    --surface: #FFFFFF;
+    --border: #E2DDD6;
+    --text: #1A1814;
+    --muted: #8A8680;
+    --accent: #2D5A3D;
+    --accent-light: #EAF2EC;
+    --accent-text: #1A3D26;
+    --blue: #2B4C7E;
+    --blue-light: #EBF0F8;
+    --blue-text: #1A2F52;
+    --danger: #C0392B;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+  }
+  .header {
+    background: var(--accent);
+    color: white;
+    padding: 20px 16px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header h1 { font-size: 17px; font-weight: 500; letter-spacing: 0.02em; }
+  .header .subtitle { font-size: 12px; opacity: 0.7; margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .month-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 61px;
+    z-index: 9;
+  }
+  .month-bar label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .month-bar input[type="month"] {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-appearance: none;
+  }
+  .main { padding: 16px; max-width: 480px; margin: 0 auto; }
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .metric.big { grid-column: 1 / -1; background: var(--accent); border-color: var(--accent); }
+  .metric-label { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
+  .metric.big .metric-label { color: rgba(255,255,255,0.65); }
+  .metric-value { font-size: 26px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--text); }
+  .metric.big .metric-value { color: white; font-size: 30px; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .metric.big .metric-sub { color: rgba(255,255,255,0.6); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+  .field input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-appearance: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 10px; padding: 8px 10px; background: var(--bg); border-radius: var(--radius-sm); border-left: 2px solid var(--border); }
+  .btn-add {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 14px;
+    transition: background 0.15s, transform 0.1s;
+    -webkit-appearance: none;
+  }
+  .btn-add:active { background: var(--accent-text); transform: scale(0.99); }
+
+  .records-list { display: flex; flex-direction: column; gap: 8px; }
+  .record-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .record-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    min-width: 38px;
+  }
+  .record-body { flex: 1; }
+  .record-time { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text); }
+  .record-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .tag {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+  }
+  .tag-onoken { background: var(--blue-light); color: var(--blue-text); }
+  .tag-imoto { background: var(--accent-light); color: var(--accent-text); }
+  .record-pay {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    text-align: right;
+  }
+  .delete-btn {
+    background: none;
+    border: none;
+    color: #CCC;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .delete-btn:active { color: var(--danger); }
+  .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 24px 0; }
+
+  .btn-export {
+    width: 100%;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 32px;
+    transition: background 0.15s, transform 0.1s;
+    -webkit-appearance: none;
+    letter-spacing: 0.02em;
+  }
+  .btn-export:active { background: var(--blue-text); transform: scale(0.99); }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>給与計算</h1>
+  <div class="subtitle">いもと不動産 / オノケンコーポレーション</div>
+</div>
+
+<div class="month-bar">
+  <label>対象月</label>
+  <input type="month" id="targetMonth">
+</div>
+
+<div class="main">
+  <div class="metrics">
+    <div class="metric big">
+      <div class="metric-label">今月の合計</div>
+      <div class="metric-value" id="totalPay">¥0</div>
+      <div class="metric-sub" id="totalHoursSub">0.0h勤務</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">いもと</div>
+      <div class="metric-value" id="imotoHours">0.0h</div>
+      <div class="metric-sub" id="imotoPay">¥0</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">オノケン</div>
+      <div class="metric-value" id="onokenHoursTotal">0.0h</div>
+      <div class="metric-sub" id="onokenPay">¥0</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">勤務記録を追加</div>
+    <div class="field">
+      <label>日付</label>
+      <input type="date" id="workDate">
+    </div>
+    <div class="field">
+      <label>退勤時間</label>
+      <input type="time" id="endTime" value="18:00">
+    </div>
+    <div class="field">
+      <label>オノケン勤務（時間）</label>
+      <input type="number" id="onokenHours" min="0" max="24" step="0.5" value="0">
+    </div>
+    <div class="hint">昼休み1時間を自動差引・30分単位で計算</div>
+    <button class="btn-add" onclick="addRecord()">追加する</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">勤務記録</div>
+    <div class="records-list" id="recordsList">
+      <div class="empty">まだ記録がありません</div>
+    </div>
+  </div>
+
+  <button class="btn-export" onclick="exportExcel()">Excelで請求書を出力</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  const START_TIME = "09:00";
+  const LUNCH_HOURS = 1;
+  const IMOTO_RATE = 1100;
+  const ONOKEN_RATE = 1200;
+
+  let records = JSON.parse(localStorage.getItem('kyuyo_v3') || '[]');
+
+  const monthInput = document.getElementById('targetMonth');
+  monthInput.value = new Date().toISOString().slice(0, 7);
+  monthInput.addEventListener('change', render);
+
+  function roundHalf(h) { return Math.floor(h * 2) / 2; }
+
+  function calcTotal(endTime) {
+    const [sh, sm] = START_TIME.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    const raw = (eh * 60 + em - sh * 60 - sm) / 60 - LUNCH_HOURS;
+    return roundHalf(Math.max(raw, 0));
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function addRecord() {
+    const date = document.getElementById('workDate').value;
+    const endTime = document.getElementById('endTime').value;
+    const onokenH = roundHalf(parseFloat(document.getElementById('onokenHours').value) || 0);
+    if (!date || !endTime) { showToast('日付と退勤時間を入力してください'); return; }
+    const totalH = calcTotal(endTime);
+    if (totalH <= 0) { showToast('退勤時間を確認してください'); return; }
+    if (onokenH > totalH) { showToast('オノケン時間が実労働時間を超えています'); return; }
+    records.push({ date, endTime, totalH, onokenH });
+    records.sort((a, b) => a.date.localeCompare(b.date));
+    localStorage.setItem('kyuyo_v3', JSON.stringify(records));
+    document.getElementById('onokenHours').value = '0';
+    showToast('追加しました');
+    render();
+  }
+
+  function deleteRecord(globalIdx) {
+    if (!confirm('この記録を削除しますか？')) return;
+    records.splice(globalIdx, 1);
+    localStorage.setItem('kyuyo_v3', JSON.stringify(records));
+    render();
+  }
+
+  function getFiltered() {
+    const month = monthInput.value;
+    return records.map((r, i) => ({...r, globalIdx: i})).filter(r => r.date.startsWith(month));
+  }
+
+  function fmt(n) { return (Math.round(n * 10) / 10).toFixed(1); }
+  function fmtPay(n) { return '¥' + Math.round(n).toLocaleString(); }
+
+  function render() {
+    const filtered = getFiltered();
+    const list = document.getElementById('recordsList');
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty">この月の記録はありません</div>';
+    } else {
+      list.innerHTML = filtered.map((r, i) => {
+        const imotoH = r.totalH - r.onokenH;
+        const pay = imotoH * IMOTO_RATE + r.onokenH * ONOKEN_RATE;
+        const dateStr = r.date.slice(5).replace('-', '/');
+        const onokenTag = r.onokenH > 0
+          ? `<span class="tag tag-onoken">オノケン ${fmt(r.onokenH)}h</span>`
+          : '';
+        const imotoTag = `<span class="tag tag-imoto">いもと ${fmt(imotoH)}h</span>`;
+        return `<div class="record-item">
+          <div class="record-date">${dateStr}</div>
+          <div class="record-body">
+            <div class="record-time">〜${r.endTime}　実働${fmt(r.totalH)}h</div>
+            <div class="record-tags">${imotoTag}${onokenTag}</div>
+          </div>
+          <div class="record-pay">${fmtPay(pay)}</div>
+          <button class="delete-btn" onclick="deleteRecord(${r.globalIdx})">×</button>
+        </div>`;
+      }).join('');
+    }
+
+    let totalH = 0, totalOnoken = 0, totalPay = 0;
+    filtered.forEach(r => {
+      totalH += r.totalH;
+      totalOnoken += r.onokenH;
+      totalPay += (r.totalH - r.onokenH) * IMOTO_RATE + r.onokenH * ONOKEN_RATE;
+    });
+    const totalImoto = totalH - totalOnoken;
+
+    document.getElementById('totalPay').textContent = fmtPay(totalPay);
+    document.getElementById('totalHoursSub').textContent = fmt(totalH) + 'h勤務';
+    document.getElementById('imotoHours').textContent = fmt(totalImoto) + 'h';
+    document.getElementById('imotoPay').textContent = fmtPay(totalImoto * IMOTO_RATE);
+    document.getElementById('onokenHoursTotal').textContent = fmt(totalOnoken) + 'h';
+    document.getElementById('onokenPay').textContent = fmtPay(totalOnoken * ONOKEN_RATE);
+  }
+
+  function exportExcel() {
+    const month = monthInput.value;
+    const filtered = getFiltered();
+    if (filtered.length === 0) { showToast('この月の記録がありません'); return; }
+
+    let totalH = 0, totalOnoken = 0, totalPay = 0;
+    const wsData = [
+      ['請求書'],
+      ['対象月', month],
+      ['いもと不動産 時給', IMOTO_RATE + '円', '', 'オノケンコーポレーション 時給', ONOKEN_RATE + '円'],
+      ['※昼休み1時間差引・30分単位計算'],
+      [],
+      ['日付', '退勤時間', '実労働時間(h)', 'オノケン(h)', 'いもと(h)', '金額(円)'],
+    ];
+    filtered.forEach(r => {
+      const imotoH = Math.round((r.totalH - r.onokenH) * 10) / 10;
+      const pay = Math.round(imotoH * IMOTO_RATE + r.onokenH * ONOKEN_RATE);
+      wsData.push([r.date, r.endTime, r.totalH, r.onokenH, imotoH, pay]);
+      totalH += r.totalH;
+      totalOnoken += r.onokenH;
+      totalPay += pay;
+    });
+    wsData.push([]);
+    wsData.push(['合計', '', Math.round(totalH * 10) / 10, Math.round(totalOnoken * 10) / 10, Math.round((totalH - totalOnoken) * 10) / 10, Math.round(totalPay)]);
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{wch:12},{wch:10},{wch:14},{wch:12},{wch:12},{wch:12}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, month + '給与');
+    XLSX.writeFile(wb, `請求書_${month}.xlsx`);
+  }
+
+  render();
+</script>
+</body>
+</html>
